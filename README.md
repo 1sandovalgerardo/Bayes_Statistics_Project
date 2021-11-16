@@ -6,3 +6,6 @@
     - Beta
     - Bernoulli
 - One approach we are considering is to model the logitstic regression where our our 1 is a percentage move over x days greater than the mean of the distribution.
+
+
+# $y_1 = m_x$
