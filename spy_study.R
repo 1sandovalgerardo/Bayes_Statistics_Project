@@ -6,7 +6,7 @@ library(dplyr)
 
 #library(forecast)
 
-## Test of git push ##
+## Test ssh use ##
 
 #### Load Data ####
 spy_path = paste(getwd(), '/SPY.csv', sep='')
