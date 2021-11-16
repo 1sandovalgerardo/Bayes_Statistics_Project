@@ -6,7 +6,7 @@ library(dplyr)
 
 #library(forecast)
 
-### Test number 3 ###
+### Test number 4 ###
 
 #### Load Data ####
 spy_path = paste(getwd(), '/SPY.csv', sep='')
