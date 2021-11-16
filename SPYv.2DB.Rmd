@@ -1,0 +1,290 @@
+---
+title: "Final Project"
+output: html_notebook
+Authors: Danielle Buhr and Gerardo Sandoval
+---
+
+ 
+```{r}
+
+library(ggplot2) # for graphs
+library(rjags)
+library(dplyr)
+#library(fBasics)
+#library(forecast)
+
+```
+
+
+## Load Data
+```{r}
+spy_path = paste(getwd(), '/SPY.csv', sep='')
+
+spy_data = read.csv(spy_path)
+head(spy_data)
+#View(spy_data)#
+
+```
+
+
+## Variables
+```{r}
+#### Create Change Variables ####
+spy_data = spy_data %>%
+  dplyr::mutate(change1 = (Adj.Close - lag(Adj.Close, n=1))/ lag(Adj.Close, n=1),
+                change3 = (Adj.Close - lag(Adj.Close, n=3))/ lag(Adj.Close, n=3),
+                change5 = (Adj.Close - lag(Adj.Close, n=5))/ lag(Adj.Close, n=5),
+                change10 = (Adj.Close - lag(Adj.Close, n=10))/ lag(Adj.Close, n=10),
+                change0 = (Close - Open) / Open
+                )
+hist(spy_data$change3, breaks=50)
+
+```
+
+
+
+*G.S.*: I was thinking of analyzing the absolute values to make the logistic regression work a bit easier
+
+```{r}
+abs_data = spy_data %>%
+  dplyr::mutate(change1 = abs((Adj.Close - lag(Adj.Close, n=1))/ lag(Adj.Close, n=1)),
+                change3 = abs((Adj.Close - lag(Adj.Close, n=3))/ lag(Adj.Close, n=3)),
+                change5 = abs((Adj.Close - lag(Adj.Close, n=5))/ lag(Adj.Close, n=5)),
+                change10 = abs((Adj.Close - lag(Adj.Close, n=10))/ lag(Adj.Close, n=10))
+                )
+
+
+hist(abs_data$change3, breaks=50)
+
+mean(na.omit(abs_data$change3))
+
+```
+
+
+#### Volume Variables
+```{r}
+# Function to normalize volume
+norm_volume = function(data, new_max, new_min){
+  return(data-min(data)) / (max(data)-min(data)) * (new_max-new_min) + new_min
+}
+
+### Normalized Volume ###
+spy_data$Norm_Volume = norm_volume(spy_data$Volume, 3, 1)
+
+
+```
+
+### Advance Decline Variables
+```{r}
+
+# mutate is from dplyr
+spy_data = spy_data %>%
+  mutate(Volume_Dir = (change0/abs(change0))*Norm_Volume,
+         Adv_Dec = cumsum(ifelse(is.na(Volume_Dir), 0, Volume_Dir)),
+         AD_Change1 = (Adv_Dec - lag(Adv_Dec)) / lag(Adv_Dec),
+         AD_Change3 = (Adv_Dec - lag(Adv_Dec,n=3)) / lag(Adv_Dec,n=3),
+         AD_Change5 = (Adv_Dec - lag(Adv_Dec,n=5)) / lag(Adv_Dec,n=5)
+         )
+plot(spy_data$Adv_Dec, type='l', xlim=c(1000,5000))
+plot(spy_data$AD_Change1, type='l', xlim=c(1000,5000), ylim=c(-1,1))
+
+sd(spy_data$change1)
+sd(spy_data$change3)
+```
+
+
+#### Response Variable
+*G.S.*: We want to predict what the change will be from today over the next 5 days. So I shifted the change5 column to create a response column
+```{r}
+
+spy_data$Response = lead(spy_data$change5, n=5)
+
+check_values = subset(spy_data, select = c(Response, change5))
+head(check_values, n=10)
+
+```
+
+
+## JAG Structure
+*DB:* are the params correct? I think we're just traking betas
+
+```{r}
+spy_data = na.omit(spy_data)
+Y = spy_data$Response
+X = subset(spy_data, select=c(Norm_Volume, change1, change3, Adv_Dec))
+X1 = spy_data$Norm_Volume
+X2 = spy_data$change1
+X3 = spy_data$change3
+X4 = spy_data$Adv_Dec
+
+n = length(Y)
+p = ncol(X)
+data = list(Y=Y, X1=X1, X2=X2, X3=X3, X4=X4, n=n)#, p=p)
+params = c('alpha', 'beta1', 'beta2', 'beta3', 'beta4') 
+names = c('alpha',"Norm_Volume", "change1", 'change3', 'Adv_Dec')
+
+nBurn = 10000
+nChains = 2
+nSave = 4000
+nThin = 5
+nIter = ceiling((nSave*nThin)/nChains)
+
+```
+
+
+## JAGS Model (1.)
+
+```{r}
+model_string1 = textConnection("
+  model{
+  # Likelihood
+  for(i in 1:n){
+    Y[i] ~ dnorm(alpha + X1[i]*beta1+ X2[i]*beta2+ X3[i]*beta3+ X4[i]*beta4, tau1)
+  }
+  # Priors
+  beta1 ~ dnorm(0, 0.001)
+  beta2 ~ dnorm(0, 1/0.012)
+  beta3 ~ dnorm(0, 1/0.019)
+  beta4 ~ dnorm(0, 0.001)
+  tau1 ~ dgamma(0.1, 0.1) 
+  alpha ~ dnorm(0, 0.001)
+  }")
+
+model1 = jags.model(model_string1, data=data, n.chains=nChains, quiet=T)
+update(model1, burn=nBurn, progress.bar='text')
+samples1 = coda.samples(model1, variable.names=params, thin=nThin, n.iter=nIter, progress.bar='text')
+
+
+```
+
+
+### RESULTS (1.)
+```{r}
+plot(samples1)
+round(effectiveSize(samples1), 1)
+sum1 = summary(samples1)
+rownames(sum1$statistics) = names
+rownames(sum1$quantiles) = names
+sum1
+
+```
+
+
+## JAGS Model (2.)
+```{r}
+model_string2 = textConnection("
+  model{
+  # Likelihood
+  for(i in 1:n){
+    Y[i] ~ dnorm(alpha + X1[i]*beta1+ X2[i]*beta2+ X3[i]*beta3+ X4[i]*beta4, tau1)
+  }
+  # Priors
+  beta1 ~ dnorm(0, 0.001)
+  beta2 ~ dnorm(0, 0.001)
+  beta3 ~ dnorm(0, 0.001)
+  beta4 ~ dnorm(0, 0.001)
+  tau1 ~ dgamma(0.1, 0.1) 
+  alpha ~ dnorm(0, 0.001)
+  }")
+
+model2 = jags.model(model_string2, data=data, n.chains=nChains, quiet=T)
+update(model2, burn=nBurn, progress.bar='text')
+samples2 = coda.samples(model2, variable.names=params, thin=nThin, n.iter=nIter, progress.bar='text')
+```
+
+### RESULTS (2.)
+D.B: edits made
+```{r}
+plot(samples2)
+round(effectiveSize(samples2), 1)
+sum2 = summary(samples2)
+rownames(sum2$statistics) = names # pointed to sum1 instead of 2
+rownames(sum2$quantiles) = names
+sum2
+
+```
+## JAGS Model (3.)
+DB edits
+```{r}
+data3 = list(Y=Y, X1=X1, X2=X2, X3=X3, X4=X4, n=n)
+params3 = c('alpha', 'beta')
+```
+
+
+```{r}
+model_string3 = textConnection("
+  model{
+  # Likelihood
+  for(i in 1:n){
+    Y[i] ~ dnorm(mu[i],taue)
+    mu[i] ~ dnorm(alpha + X1[i]*beta[1]+ X2[i]*beta[2]+ X3[i]*beta[3]+ X4[i]*beta[4], taue)
+    
+  }
+  
+ 
+  # Priors
+  beta[1] ~ dnorm(0, 0.001)
+  beta[2] ~ dnorm(0, 0.001)
+  beta[3] ~ dnorm(0, 0.001)
+  beta[4] ~ dnorm(0, 0.001)
+  taue ~ dgamma(0.1, 0.1) 
+  alpha ~ dnorm(0, 0.001)
+  }")
+
+model3 = jags.model(model_string3, data=data3, n.chains=nChains, quiet=T)
+update(model3, burn=nBurn, progress.bar='text')
+samples3 = coda.samples(model3, variable.names=params3, thin=nThin, n.iter=nIter, progress.bar='text')
+```
+
+### RESULTS (3.)
+```{r}
+plot(samples3)
+round(effectiveSize(samples3), 1)
+sum3 = summary(samples2)
+rownames(sum3$statistics) = names
+rownames(sum3$quantiles) = names
+sum3
+
+```
+
+
+
+### Notes
+```{r}
+  beta1 ~ dnorm(0, 0.001)
+  beta2 ~ dnorm(0, 0.001)
+  beta3 ~ dnorm(0, 0.001)
+  beta4 ~ dnorm(0, 0.001)
+  
+#### Part of Model ####
+for(j in 1:n){
+tau[1] ~ dgamma(0.1,0.1)
+}
+
+for(j in 2:n){
+rho ~ runif(-1, 1)
+}
+
+
+#### Volume ####
+volume = spy_data$Volume
+intraday_change = (spy_data$Close - spy_data$Open) / spy_data$Open
+
+plot(cumsum(volume*(intraday_change/abs(intraday_change))))
+
+#
+ Y[i] ~ dnorm(beta[i,1]+beta[i,2]+beta[i,3]+beta[i,4]+beta[i,5]+beta[i,6])/6+bias3,tau3)
+  for(j in 1:n){
+    tau[1] ~ dgamma(0.1,0.1)
+  }
+  
+  for(j in 2:n){
+  rho ~ dunif(-1, 1)
+  }
+  # Priors
+  alpha ~ dnorm(0, 0.001)
+  for (j in 1:p){
+    beta[j]~ dnorm(0, 0.001)
+  }
+  tau1 ~ dgamma(0.1, 0.1)
+```
