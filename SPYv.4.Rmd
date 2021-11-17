@@ -210,6 +210,9 @@ sum2
 ##3. Fit the Bayesian LASSO  
 $\beta_{j} \sim \text{DE}(0,\sigma_{b}^{2} )$ with $\sigma_{b}^{2} \sim \text{InvGamma}(0.1,0.1)$ 
 DE = double exponential
+NOTE: You can change progress.bar='none'
+That avoids printing the pesky status bar.
+The output is different when run in through a command line.
 ```{r}
 model_string <- textConnection("model{
   # Likelihood
