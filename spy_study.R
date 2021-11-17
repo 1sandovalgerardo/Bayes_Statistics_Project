@@ -6,8 +6,6 @@ library(dplyr)
 
 #library(forecast)
 
-### Test number 11 ###
-
 #### Load Data ####
 spy_path = paste(getwd(), '/SPY.csv', sep='')
 
@@ -71,7 +69,7 @@ spy_data$Response = lead(spy_data$change5, n=5)
 check_values = subset(spy_data, select = c(Response, change5))
 head(check_values, n=10)
 
-#### STRUCTURE FOR JAGS ####
+#### DATA STRUCTURE FOR JAGS ####
 spy_data = na.omit(spy_data)
 Y = spy_data$Response
 X = subset(spy_data, select=c(Norm_Volume, change1, 
@@ -93,7 +91,7 @@ nSave = 4000
 nThin = 5
 nIter = ceiling((nSave*nThin)/nChains)
 
-#### JAGS MODEL ####
+#### JAGS MODEL 1 ####
 model_string1 = textConnection("
   model{
   # Likelihood
@@ -121,20 +119,22 @@ rownames(sum1$statistics) = names
 rownames(sum1$quantiles) = names
 sum1
 
-####
-### JAGS 2 ###
+#### JAGS MODEL 2 ####
 model_string2 = textConnection("
   model{
   # Likelihood
   for(i in 1:n){
-    Y[i] ~ dnorm(alpha + X1[i]*beta1+ X2[i]*beta2+ X3[i]*beta3+ X4[i]*beta4, tau1)
+    Y[i] ~ dnorm(alpha + X1[i]*beta1+ X2[i]*beta2+ X3[i]*beta3+ X4[i]*beta4, tau3)
   }
   # Priors
-  beta1 ~ dnorm(0, 0.001)
-  beta2 ~ dnorm(0, 0.001)
-  beta3 ~ dnorm(0, 0.001)
-  beta4 ~ dnorm(0, 0.001)
-  tau1 ~ dgamma(0.1, 0.1) 
+  beta1 ~ dnorm(0, taub*taue)
+  beta2 ~ dnorm(0, taub*taue)
+  beta3 ~ dnorm(0, taub*taue)
+  beta4 ~ dnorm(0, taub*taue)
+  
+  taue ~ dgamma(0.1, 0.1) 
+  taub ~ dgamma(0.1, 0.1)
+  
   alpha ~ dnorm(0, 0.001)
   }")
 
@@ -150,21 +150,9 @@ rownames(sum1$statistics) = names
 rownames(sum1$quantiles) = names
 sum2
 
-#### Part of Model ####
-for(j in 1:n){
-tau[1] ~ dgamma(0.1,0.1)
-}
+#### JAGS MODEL 3 ####
 
-for(j in 2:n){
-rho ~ runif(-1, 1)
-}
-
-
-#### Volume ####
-volume = spy_data$Volume
-intraday_change = (spy_data$Close - spy_data$Open) / spy_data$Open
-
-plot(cumsum(volume*(intraday_change/abs(intraday_change))))
+#
 
 #
 
