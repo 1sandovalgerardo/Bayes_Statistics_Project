@@ -124,7 +124,7 @@ model_string2 = textConnection("
   model{
   # Likelihood
   for(i in 1:n){
-    Y[i] ~ dnorm(alpha + X1[i]*beta1+ X2[i]*beta2+ X3[i]*beta3+ X4[i]*beta4, tau3)
+    Y[i] ~ dnorm(alpha + X1[i]*beta1+ X2[i]*beta2+ X3[i]*beta3+ X4[i]*beta4, taue)
   }
   # Priors
   beta1 ~ dnorm(0, taub*taue)
@@ -151,6 +151,121 @@ rownames(sum1$quantiles) = names
 sum2
 
 #### JAGS MODEL 3 ####
+model_string3 = textConnection("model{
+  # Likelihood
+  for(i in 1:n){
+    Y[i] ~ dnorm(alpha + X1[i]*beta1+ X2[i]*beta2+ X3[i]*beta3+ X4[i]*beta4, taue)
+  }
+  # Priors
+  beta1 ~ ddexp(0, taub*taue)
+  beta2 ~ ddexp(0, taub*taue)
+  beta3 ~ ddexp(0, taub*taue)
+  beta4 ~ ddexp(0, taub*taue)
+  taue ~ dgamma(0.1, 0.1)
+  taub ~ dgamma(0.1, 0.1)
+  alpha ~ dnorm(0, 0.001)
+}")
+model3 = jags.model(model_string3, data=data, n.chains=nChains, quiet=T)
+update(model3, burn=nBurn, progress.bar='text')
+samples3 = coda.samples(model3, variable.names=params, thin=nThin,
+                        n.iter=nIter, progress.bar='text')
+
+#### RESULTS ####
+plot(samples3)
+round(effectiveSize(samples3), 1)
+sum3 = summary(samples3)
+rownames(sum3$statistics) = names 
+rownames(sum3$quantiles) = names
+sum3
+
+#### COMPARING MODELS ####
+
+# Break out each chain from the samples object
+# and make them a data frame to easily access 
+# the predictors.
+model1_chain1 = as.data.frame(samples1[[1]])
+model1_chain2 = as.data.frame(samples1[[2]])
+
+model2_chain1 = as.data.frame(samples2[[1]])
+model2_chain2 = as.data.frame(samples2[[2]])
+
+model3_chain1 = as.data.frame(samples3[[1]])
+model3_chain2 = as.data.frame(samples3[[2]])
+
+head(model3_chain1)
+dim(model3_chain1)==dim(samples3[[1]])
+
+## TO DO:  Make master dataframe and then melt it 
+## this will allow me to easily overlap the density plots
+## and assign appropriate labels
+
+### Summary of marginal distributions of alpha and betas ###
+# Similar to week 9, example 1
+# alpha
+ggplot(model1_chain1, aes(x=alpha)) +
+  geom_density() +
+  geom_density(data=model2_chain1, aes(x=alpha), col='blue') +
+  geom_density(data=model3_chain1, aes(x=alpha), col='red')
+
+# Beta 1
+ggplot(model1_chain1, aes(x=beta1)) +
+  geom_density() +
+  geom_density(data=model2_chain1, aes(x=beta1), col='blue') +
+  geom_density(data=model3_chain1, aes(x=beta1), col='red')
+# Beta 2
+ggplot(model1_chain1, aes(x=beta2)) +
+  geom_density() +
+  geom_density(data=model2_chain1, aes(x=beta2), col='blue') +
+  geom_density(data=model3_chain1, aes(x=beta2), col='red')
+# Beta 3
+ggplot(model1_chain1, aes(x=beta3)) +
+  geom_density() +
+  geom_density(data=model2_chain1, aes(x=beta3), col='blue') +
+  geom_density(data=model3_chain1, aes(x=beta3), col='red')
+# Beta 4
+ggplot(model1_chain1, aes(x=beta4)) +
+  geom_density() +
+  geom_density(data=model2_chain1, aes(x=beta4), col='blue') +
+  geom_density(data=model3_chain1, aes(x=beta4), col='red')
+
+
+#### START OF REQUESTED CODE ####
+for(j in 1:p){
+  s1 = c(samples1[[1]][,j], samples1[[2]][,j])
+  s2 = c(samples2[[1]][,j], samples1[[2]][,j])
+  s3 = c(samples3[[1]][,j], samples1[[2]][,j])
+}
+
+library(cowplot)
+
+plot_list = list()
+
+d1 = density(s1)
+d2 = density(s2)
+d3 = density(s3)
+
+Prior <- c(rep("Uninformative Gaussian",length(d1$x)),
+           rep("Gaussian shrinkage",length(d2$x)),
+           rep("Bayesian LASSO",length(d3$x)))
+x <- c(d1$x,d2$x,d3$x)
+y <- c(d1$y,d2$y,d3$y)
+d.data <- data.frame(x=x,y=y,Prior=Prior)
+
+max.y <- max(y)
+plot.title <- names[j]
+g <- ggplot(d.data,aes(x=x,y=y,color=Prior))+geom_line()+
+  labs(x=expression(beta),y="Posterior density")+ggtitle(plot.title)+
+  ylim(c(0,max.y))+geom_vline(xintercept=0)
+plot_list[[j]] <- g+theme(legend.position="none")
+
+prow <- plot_grid(plotlist=plot_list,nrow=4)
+legend <- get_legend(g+guides(color=guide_legend(reverse=TRUE,nrow=1))+
+                     theme(legend.position="bottom"))
+plot_grid(prow,legend,nrow=5,rel_heights = c(1,0.1))
+g
+
+#### Computing the posterior probabilities of each model ####
+
 
 #
 
