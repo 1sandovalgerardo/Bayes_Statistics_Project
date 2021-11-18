@@ -158,24 +158,28 @@ X6 = spy_data$AD_Change1
 X7 = spy_data$AD_Change3
 X8 = spy_data$AD_Change5
 X9 = spy_data$change0
-data = list(Y=Y, X1=X1, X2=X2, X3=X3, X4=X4, 
+X = rbind(X1, X2, X3, X4, X5, X6, X7, X8, X9)
+class(X)
+model3_data = list(Y=Y, X1=X1, X2=X2, X3=X3, X4=X4, 
             X5=X5, X6=X6, X7=X7, X8=X8, X9=X9,n=n)#, p=p)
+model3_data = list(Y=Y, X=X, n=n)
 
 model_string3 = textConnection("model{
   # Likelihood
   for(i in 1:n){
-    Y[i] ~ dnorm(alpha + X1[i]*beta1+ X2[i]*beta2+ X3[i]*beta3+ X4[i]*beta4, taue)
+    betas = inprod(X[i,], beta[])
+    Y[i] ~ dnorm(alpha + betas, taue)
+    #Y[i] ~ dnorm(alpha + inprod(X[i,],beta), taue)
   }
   # Priors
-  beta1 ~ ddexp(0, taub*taue)
-  beta2 ~ ddexp(0, taub*taue)
-  beta3 ~ ddexp(0, taub*taue)
-  beta4 ~ ddexp(0, taub*taue)
+  for(j in 1:9){
+    beta[j] ~ ddexp(0, taub*taue)
+  }
   taue ~ dgamma(0.1, 0.1)
   taub ~ dgamma(0.1, 0.1)
   alpha ~ dnorm(0, 0.001)
 }")
-model3 = jags.model(model_string3, data=data, n.chains=nChains, quiet=T)
+model3 = jags.model(model_string3, data=model3_data, n.chains=nChains, quiet=T)
 update(model3, burn=nBurn, progress.bar='text')
 samples3 = coda.samples(model3, variable.names=params, thin=nThin,
                         n.iter=nIter, progress.bar='text')
