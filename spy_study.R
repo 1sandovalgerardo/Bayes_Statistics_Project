@@ -190,21 +190,10 @@ sum3
 
 #### COMPARING MODELS ####
 
-# Break out each chain from the samples object
-# and make them a data frame to easily access 
-# the predictors.
-model1_chain1 = as.data.frame(samples1[[1]])
-model1_chain2 = as.data.frame(samples1[[2]])
+#### COMPARE PREDICTORS ####
 
-model2_chain1 = as.data.frame(samples2[[1]])
-model2_chain2 = as.data.frame(samples2[[2]])
-
-model3_chain1 = as.data.frame(samples3[[1]])
-model3_chain2 = as.data.frame(samples3[[2]])
-
-head(model3_chain1)
-dim(model3_chain1)==dim(samples3[[1]])
-
+# Break out the predictors from the chains
+# and combine them into one predictor per model
 alphas1 = c(samples1[[1]][,1], samples1[[2]][,1])
 beta1.1 = c(samples1[[1]][,2], samples1[[2]][,2])
 beta2.1 = c(samples1[[1]][,3], samples1[[2]][,3])
@@ -223,14 +212,21 @@ beta2.3 = c(samples3[[1]][,3], samples3[[2]][,3])
 beta3.3 = c(samples3[[1]][,4], samples3[[2]][,4])
 beta4.3 = c(samples3[[1]][,5], samples3[[2]][,5])
 
-### ALPHA DENSITY OVERLAY
+#### ALPHA DENSITY OVERLAY ####
+# Combine the alphas into one dataframe to manipulate
 alphasDF = data.frame(alphas1, alphas2, alphas3)
-
+# Pivot longer allows easy visualization language plotting
 alphasDF = alphasDF %>% pivot_longer(names_to='Index',
                                      values_to='Value',
                                      cols = c(alphas1, alphas2, alphas3))
+# run: head(alphasDF) to see how the structure changed.
+# PLOT
 ggplot(alphasDF, aes(x=Value, group=Index, col=Index)) +
-  geom_density()
+  geom_density()+
+  labs(title='Alphas Density Plot') + 
+  xlim(min(alphasDF$Value), 0.005) +
+  geom_vline(xintercept = 0)
+  theme_minimal()
 
 ### BETA1 DENSITY OVERLAY
 betas1 = data.frame(beta1.1, beta1.2, beta1.3)
@@ -239,9 +235,12 @@ betas1 = betas1 %>% pivot_longer(
   values_to = 'Value',
   cols = c(beta1.1, beta1.2, beta1.3)
 )
+# PLOT
 ggplot(betas1, aes(x=Value, group=Index, col=Index)) +
   geom_density() +
   theme_minimal() + 
+  xlim(-2e-11,max(betas1$Value))+
+  geom_vline(xintercept = 0)+
   labs(title='Betas 1 Density Plot')
 
 ### BETA2 DENSITY OVERLAY
@@ -254,6 +253,8 @@ betas2 = betas2 %>% pivot_longer(
 ggplot(betas2, aes(x=Value, group=Index, col=Index)) +
   geom_density() +
   theme_minimal() + 
+  xlim(-0.2, 0.035) +
+  geom_vline(xintercept = 0) +
   labs(title='Betas 2 Density Plot')
 
 ### BETA3 DENSITY OVERLAY
@@ -263,56 +264,27 @@ betas3 = betas3 %>% pivot_longer(
   values_to = 'Value',
   cols = c(beta3.1, beta3.2, beta3.3)
 )
+# PLOT
 ggplot(betas3, aes(x=Value, group=Index, col=Index)) +
   geom_density() +
   theme_minimal() + 
+  xlim(-0.2, 0.035) +
+  geom_vline(xintercept = 0)+
   labs(title='Betas 3 Density Plot')
 
-### BETA1 DENSITY OVERLAY
-betas1 = data.frame(beta1.1, beta1.2, beta1.3)
-betas1 = betas1 %>% pivot_longer(
+### BETA4 DENSITY OVERLAY
+betas4 = data.frame(beta4.1, beta4.2, beta4.3)
+betas4 = betas4 %>% pivot_longer(
   names_to = 'Index',
   values_to = 'Value',
-  cols = c(beta1.1, beta1.2, beta1.3)
+  cols = c(beta4.1, beta4.2, beta4.3)
 )
-ggplot(betas1, aes(x=Value, group=Index, col=Index)) +
+ggplot(betas4, aes(x=Value, group=Index, col=Index)) +
   geom_density() +
   theme_minimal() + 
-  labs(title='Betas 1 Density Plot')
-
-
-## TO DO:  Make master dataframe and then melt it 
-## this will allow me to easily overlap the density plots
-## and assign appropriate labels
-
-### Summary of marginal distributions of alpha and betas ###
-# Similar to week 9, example 1
-# alpha
-ggplot(model1_chain1, aes(x=alpha)) +
-  geom_density() +
-  geom_density(data=model2_chain1, aes(x=alpha), col='blue') +
-  geom_density(data=model3_chain1, aes(x=alpha), col='red')
-
-# Beta 1
-ggplot(model1_chain1, aes(x=beta1)) +
-  geom_density() +
-  geom_density(data=model2_chain1, aes(x=beta1), col='blue') +
-  geom_density(data=model3_chain1, aes(x=beta1), col='red')
-# Beta 2
-ggplot(model1_chain1, aes(x=beta2)) +
-  geom_density() +
-  geom_density(data=model2_chain1, aes(x=beta2), col='blue') +
-  geom_density(data=model3_chain1, aes(x=beta2), col='red')
-# Beta 3
-ggplot(model1_chain1, aes(x=beta3)) +
-  geom_density() +
-  geom_density(data=model2_chain1, aes(x=beta3), col='blue') +
-  geom_density(data=model3_chain1, aes(x=beta3), col='red')
-# Beta 4
-ggplot(model1_chain1, aes(x=beta4)) +
-  geom_density() +
-  geom_density(data=model2_chain1, aes(x=beta4), col='blue') +
-  geom_density(data=model3_chain1, aes(x=beta4), col='red')
+  xlim(-1.03e-13, 7.03e-13) +
+  geom_vline(xintercept = 0)+
+  labs(title='Betas 4 Density Plot')
 
 
 #### START OF REQUESTED CODE ####
