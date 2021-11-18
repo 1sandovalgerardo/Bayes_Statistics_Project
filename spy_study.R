@@ -3,6 +3,7 @@ library(ggplot2) # for graphs
 library(rjags)
 library(dplyr)
 library(cowplot)
+library(tidyverse)
 #library(fBasics)
 
 #library(forecast)
@@ -203,6 +204,29 @@ model3_chain2 = as.data.frame(samples3[[2]])
 
 head(model3_chain1)
 dim(model3_chain1)==dim(samples3[[1]])
+
+alphas1 = c(samples1[[1]][,1], samples1[[2]][,1])
+beta1.1 = c(samples1[[1]][,2], samples1[[2]][,2])
+beta2.1 = c(samples1[[1]][,3], samples1[[2]][,3])
+beta3.1 = c(samples1[[1]][,4], samples1[[2]][,4])
+beta4.1 = c(samples1[[1]][,5], samples1[[2]][,5])
+
+alphas2 = c(samples2[[1]][,1], samples2[[2]][,1])
+beta1.2 = c(samples2[[1]][,2], samples2[[2]][,2])
+beta2.2 = c(samples2[[1]][,3], samples2[[2]][,3])
+beta3.2 = c(samples2[[1]][,4], samples2[[2]][,4])
+beta4.2 = c(samples2[[1]][,5], samples2[[2]][,5])
+
+alphas3 = c(samples3[[1]][,1], samples3[[2]][,1])
+beta1.3 = c(samples3[[1]][,2], samples3[[2]][,2])
+beta2.3 = c(samples3[[1]][,3], samples3[[2]][,3])
+beta3.3 = c(samples3[[1]][,4], samples3[[2]][,4])
+beta4.3 = c(samples3[[1]][,5], samples3[[2]][,5])
+
+alphasDF = data.frame(alphas1, alphas2, alphas3)
+alphasDF = alphasDF %>% pivot_longer(names_to='Index',
+                                     values_to='Value')
+head(alphasDF)
 
 ## TO DO:  Make master dataframe and then melt it 
 ## this will allow me to easily overlap the density plots
