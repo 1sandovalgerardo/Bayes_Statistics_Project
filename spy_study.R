@@ -223,10 +223,63 @@ beta2.3 = c(samples3[[1]][,3], samples3[[2]][,3])
 beta3.3 = c(samples3[[1]][,4], samples3[[2]][,4])
 beta4.3 = c(samples3[[1]][,5], samples3[[2]][,5])
 
+### ALPHA DENSITY OVERLAY
 alphasDF = data.frame(alphas1, alphas2, alphas3)
+
 alphasDF = alphasDF %>% pivot_longer(names_to='Index',
-                                     values_to='Value')
-head(alphasDF)
+                                     values_to='Value',
+                                     cols = c(alphas1, alphas2, alphas3))
+ggplot(alphasDF, aes(x=Value, group=Index, col=Index)) +
+  geom_density()
+
+### BETA1 DENSITY OVERLAY
+betas1 = data.frame(beta1.1, beta1.2, beta1.3)
+betas1 = betas1 %>% pivot_longer(
+  names_to = 'Index',
+  values_to = 'Value',
+  cols = c(beta1.1, beta1.2, beta1.3)
+)
+ggplot(betas1, aes(x=Value, group=Index, col=Index)) +
+  geom_density() +
+  theme_minimal() + 
+  labs(title='Betas 1 Density Plot')
+
+### BETA2 DENSITY OVERLAY
+betas2 = data.frame(beta2.1, beta2.2, beta2.3)
+betas2 = betas2 %>% pivot_longer(
+  names_to = 'Index',
+  values_to = 'Value',
+  cols = c(beta2.1, beta2.2, beta2.3)
+)
+ggplot(betas2, aes(x=Value, group=Index, col=Index)) +
+  geom_density() +
+  theme_minimal() + 
+  labs(title='Betas 2 Density Plot')
+
+### BETA3 DENSITY OVERLAY
+betas3 = data.frame(beta3.1, beta3.2, beta3.3)
+betas3 = betas3 %>% pivot_longer(
+  names_to = 'Index',
+  values_to = 'Value',
+  cols = c(beta3.1, beta3.2, beta3.3)
+)
+ggplot(betas3, aes(x=Value, group=Index, col=Index)) +
+  geom_density() +
+  theme_minimal() + 
+  labs(title='Betas 3 Density Plot')
+
+### BETA1 DENSITY OVERLAY
+betas1 = data.frame(beta1.1, beta1.2, beta1.3)
+betas1 = betas1 %>% pivot_longer(
+  names_to = 'Index',
+  values_to = 'Value',
+  cols = c(beta1.1, beta1.2, beta1.3)
+)
+ggplot(betas1, aes(x=Value, group=Index, col=Index)) +
+  geom_density() +
+  theme_minimal() + 
+  labs(title='Betas 1 Density Plot')
+
 
 ## TO DO:  Make master dataframe and then melt it 
 ## this will allow me to easily overlap the density plots
