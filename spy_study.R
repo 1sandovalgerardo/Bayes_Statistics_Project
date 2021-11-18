@@ -102,8 +102,8 @@ model_string1 = textConnection("
   }
   # Priors
   beta1 ~ dnorm(0, 0.001)
-  beta2 ~ dnorm(0, 1/0.012)
-  beta3 ~ dnorm(0, 1/0.019)
+  beta2 ~ dnorm(0, 0.001)
+  beta3 ~ dnorm(0, 0.001)
   beta4 ~ dnorm(0, 0.001)
   tau1 ~ dgamma(0.1, 0.1) 
   alpha ~ dnorm(0, 0.001)
@@ -179,7 +179,6 @@ model3 = jags.model(model_string3, data=data, n.chains=nChains, quiet=T)
 update(model3, burn=nBurn, progress.bar='text')
 samples3 = coda.samples(model3, variable.names=params, thin=nThin,
                         n.iter=nIter, progress.bar='text')
-
 #### RESULTS ####
 plot(samples3)
 round(effectiveSize(samples3), 1)
