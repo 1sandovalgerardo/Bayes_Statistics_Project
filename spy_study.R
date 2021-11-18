@@ -2,6 +2,7 @@
 library(ggplot2) # for graphs
 library(rjags)
 library(dplyr)
+library(cowplot)
 #library(fBasics)
 
 #library(forecast)
@@ -150,7 +151,15 @@ rownames(sum1$statistics) = names
 rownames(sum1$quantiles) = names
 sum2
 
-#### JAGS MODEL 3 ####
+#### JAGS MODEL 3  Bayesian Lasso ####
+X5 = spy_data$change5
+X6 = spy_data$AD_Change1
+X7 = spy_data$AD_Change3
+X8 = spy_data$AD_Change5
+X9 = spy_data$change0
+data = list(Y=Y, X1=X1, X2=X2, X3=X3, X4=X4, 
+            X5=X5, X6=X6, X7=X7, X8=X8, X9=X9,n=n)#, p=p)
+
 model_string3 = textConnection("model{
   # Likelihood
   for(i in 1:n){
@@ -236,7 +245,6 @@ for(j in 1:p){
   s3 = c(samples3[[1]][,j], samples1[[2]][,j])
 }
 
-library(cowplot)
 
 plot_list = list()
 
@@ -262,8 +270,20 @@ prow <- plot_grid(plotlist=plot_list,nrow=4)
 legend <- get_legend(g+guides(color=guide_legend(reverse=TRUE,nrow=1))+
                      theme(legend.position="bottom"))
 plot_grid(prow,legend,nrow=5,rel_heights = c(1,0.1))
+### You may have to add "g" to get the plots to show
+### in the markdown book.
 g
 
+#### Auto Correlation Plots ####
+autocorr.plot(samples1)
+
+effectiveSize(samples1)
+effectiveSize(samples2)
+effectiveSize(samples3)
+
+geweke.diag(samples1)
+geweke.diag(samples2)
+geweke.diag(samples3)
 #### Computing the posterior probabilities of each model ####
 
 
