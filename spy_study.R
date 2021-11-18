@@ -152,6 +152,7 @@ rownames(sum1$quantiles) = names
 sum2
 
 #### JAGS MODEL 3  Bayesian Lasso ####
+# test im in branch
 X5 = spy_data$change5
 X6 = spy_data$AD_Change1
 X7 = spy_data$AD_Change3
